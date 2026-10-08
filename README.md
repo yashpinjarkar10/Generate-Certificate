@@ -6,11 +6,8 @@ A high-performance, asynchronous bulk certificate generation API built with **Fa
 
 | Service | URL / Link | Description |
 | :--- | :--- | :--- |
-| **Live Frontend Dashboard** | [https://fastapi-server-x0dz.onrender.com/](https://fastapi-server-x0dz.onrender.com/) | Interactive Web Dashboard (Form & CSV upload) |
+| **Live Frontend Dashboard** | [[https://fastapi-server-x0dz.onrender.com/](https://yashpinjarkar10.github.io/Generate-Certificate/)]([https://fastapi-server-x0dz.onrender.com/](https://yashpinjarkar10.github.io/Generate-Certificate/)) | Interactive Web Dashboard (Form & CSV upload) |
 | **Live Backend API** | [https://fastapi-server-x0dz.onrender.com](https://fastapi-server-x0dz.onrender.com) | Production FastAPI Service |
-| **Interactive API Docs (Swagger)** | [https://fastapi-server-x0dz.onrender.com/docs](https://fastapi-server-x0dz.onrender.com/docs) | OpenAPI interactive schema & test console |
-| **Alternative Docs (ReDoc)** | [https://fastapi-server-x0dz.onrender.com/redoc](https://fastapi-server-x0dz.onrender.com/redoc) | Clean API reference specification |
-| **Health Check Endpoint** | [https://fastapi-server-x0dz.onrender.com/health](https://fastapi-server-x0dz.onrender.com/health) | Live DB, Redis, and Worker heartbeat check |
 
 ---
 
