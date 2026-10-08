@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
   <div class="container">
@@ -104,8 +104,7 @@
           Paste or edit the JSON payload sent to <code>POST /api/v1/generate-certificate</code>:
         </p>
         <textarea id="raw-json-input" rows="10" spellcheck="false">{
-  "certificate_type": "standard",
-  "recipients": [
+  "certificates": [
     {
       "name": "Bruce Wayne",
       "course": "Advanced Cyber Forensics",
@@ -180,14 +179,13 @@
                 <th style="width: 50px;">#</th>
                 <th>Recipient Name</th>
                 <th>Course</th>
-                <th>Date</th>
                 <th>Status</th>
                 <th>Action / Download</th>
               </tr>
             </thead>
             <tbody id="certs-tbody">
               <tr>
-                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
                   Waiting for certificate worker to start processing...
                 </td>
               </tr>
@@ -206,6 +204,6 @@
     </footer>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

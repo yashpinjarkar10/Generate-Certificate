@@ -48,7 +48,30 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentJobId = null;
   let pollingInterval = null;
 
-  // Initialize API URL (default to live Render backend if hosted on GitHub Pages or locally)
+  // Error Formatter Helper (never shows [object Object])
+  function formatApiError(data, status = 500) {
+    if (!data) return `Request failed (HTTP ${status})`;
+    if (typeof data === "string") return data;
+    if (data.detail) {
+      if (typeof data.detail === "string") return data.detail;
+      if (Array.isArray(data.detail)) {
+        return data.detail
+          .map(item => {
+            if (typeof item === "string") return item;
+            const loc = item.loc ? item.loc.filter(l => l !== "body").join(".") : "";
+            return loc ? `${loc}: ${item.msg}` : (item.msg || JSON.stringify(item));
+          })
+          .join("; ");
+      }
+      if (typeof data.detail === "object") {
+        return JSON.stringify(data.detail);
+      }
+    }
+    if (data.message) return data.message;
+    return JSON.stringify(data);
+  }
+
+  // Initialize API URL (defaults to live Render backend or current origin)
   const defaultApiUrl = window.location.host.includes("onrender.com")
     ? window.location.origin
     : "https://fastapi-server-x0dz.onrender.com";
@@ -116,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   btnCheckHealth.addEventListener("click", checkHealth);
   checkHealth();
-  setInterval(checkHealth, 45000); // periodically ping
+  setInterval(checkHealth, 45000);
 
   // --- Tab Navigation ---
   tabBtns.forEach(btn => {
@@ -248,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
   interactiveForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const rows = recipientRows.querySelectorAll(".recipient-row");
-    const recipients = [];
+    const certificates = [];
 
     rows.forEach(row => {
       const name = row.querySelector(".rec-name").value.trim();
@@ -259,18 +282,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const item = { name };
         if (course) item.course = course;
         if (date) item.date = date;
-        recipients.push(item);
+        certificates.push(item);
       }
     });
 
-    if (recipients.length === 0) {
+    if (certificates.length === 0) {
       alert("Please provide at least one recipient with a name.");
       return;
     }
 
     const payload = {
-      certificate_type: "standard",
-      recipients: recipients
+      certificates: certificates
     };
 
     await submitJsonJob(payload);
@@ -293,9 +315,15 @@ document.addEventListener("DOMContentLoaded", () => {
         body: formData,
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        data = { detail: `HTTP ${res.status} response` };
+      }
+
       if (!res.ok) {
-        throw new Error(data.detail || `Upload failed (HTTP ${res.status})`);
+        throw new Error(formatApiError(data, res.status));
       }
 
       startTrackingJob(data.job_id);
@@ -310,7 +338,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. Raw JSON Submit
   btnSubmitJson.addEventListener("click", async () => {
     try {
-      const payload = JSON.parse(rawJsonInput.value);
+      let payload = JSON.parse(rawJsonInput.value);
+      // Support both { certificates: [...] } and { recipients: [...] }
+      if (!payload.certificates && payload.recipients) {
+        payload.certificates = payload.recipients;
+      }
       await submitJsonJob(payload);
     } catch (err) {
       alert(`Invalid JSON format: ${err.message}`);
@@ -326,9 +358,15 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        data = { detail: `HTTP ${res.status} response` };
+      }
+
       if (!res.ok) {
-        throw new Error(data.detail || `Generation request failed (HTTP ${res.status})`);
+        throw new Error(formatApiError(data, res.status));
       }
 
       startTrackingJob(data.job_id);
@@ -396,16 +434,16 @@ document.addEventListener("DOMContentLoaded", () => {
         await fetchCertificates(currentJobId);
       }
     } catch (err) {
-      console.warn("Polling error:", err);
+      console.warn("Polling warning:", err);
     }
   }
 
   function updateTrackerUI(job) {
-    const total = job.total_certificates || 0;
-    const processed = job.processed_certificates || 0;
-    const successful = job.successful_certificates || 0;
-    const failed = job.failed_certificates || 0;
-    const status = job.status.toLowerCase();
+    const total = job.total !== undefined ? job.total : (job.total_certificates || 0);
+    const successful = job.completed !== undefined ? job.completed : (job.successful_certificates || 0);
+    const failed = job.failed !== undefined ? job.failed : (job.failed_certificates || 0);
+    const processed = (successful + failed) || (job.processed_certificates || 0);
+    const status = (job.status || "pending").toLowerCase();
 
     statTotal.textContent = total;
     statProcessed.textContent = processed;
@@ -426,9 +464,9 @@ document.addEventListener("DOMContentLoaded", () => {
       jobStatusBadge.className = "badge badge-processing";
     }
 
-    if (job.error_message) {
+    if (job.error_message || job.error) {
       jobErrorBanner.style.display = "block";
-      jobErrorBanner.textContent = `Job Message: ${job.error_message}`;
+      jobErrorBanner.textContent = `Job Message: ${job.error_message || job.error}`;
     } else {
       jobErrorBanner.style.display = "none";
     }
@@ -445,8 +483,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch(`${baseUrl}/api/v1/generate-certificate/${currentJobId}`, {
         method: "DELETE"
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Cancellation failed");
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = { detail: `HTTP ${res.status}` };
+      }
+      if (!res.ok) throw new Error(formatApiError(data, res.status));
       alert("Job marked as cancelled.");
       pollJobStatus();
     } catch (err) {
@@ -468,7 +511,7 @@ document.addEventListener("DOMContentLoaded", () => {
       certsTbody.innerHTML = `
         <tr>
           <td colspan="6" style="text-align: center; color: var(--danger); padding: 1.5rem;">
-            Could not load certificates: ${err.message}
+            Could not load certificates: ${escapeHtml(err.message)}
           </td>
         </tr>
       `;
@@ -479,7 +522,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!certs || certs.length === 0) {
       certsTbody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+          <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
             No certificate records found for this job.
           </td>
         </tr>
@@ -490,19 +533,23 @@ document.addEventListener("DOMContentLoaded", () => {
     certsTbody.innerHTML = certs.map((cert, index) => {
       const statusClass = cert.status === "completed" ? "badge-completed" : (cert.status === "failed" ? "badge-failed" : "badge-pending");
       
+      const name = cert.name || cert.recipient_name || "Recipient";
+      const course = cert.course || cert.course_name || "Python";
+      const url = cert.url || cert.s3_url;
+      const errorMsg = cert.error || cert.error_message || "Failed";
+
       let actionHtml = `<span style="color: var(--text-muted);">-</span>`;
-      if (cert.status === "completed" && cert.s3_url) {
-        actionHtml = `<a href="${cert.s3_url}" target="_blank" rel="noopener noreferrer" class="btn-download">Download PDF 📄</a>`;
+      if (cert.status === "completed" && url) {
+        actionHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer" class="btn-download">Download PDF 📄</a>`;
       } else if (cert.status === "failed") {
-        actionHtml = `<span style="color: var(--danger); font-size: 0.8rem;" title="${cert.error_message || ''}">Failed: ${cert.error_message || 'Error'}</span>`;
+        actionHtml = `<span style="color: var(--danger); font-size: 0.8rem;" title="${escapeHtml(errorMsg)}">Failed: ${escapeHtml(errorMsg)}</span>`;
       }
 
       return `
         <tr>
           <td>${index + 1}</td>
-          <td><strong>${escapeHtml(cert.recipient_name)}</strong></td>
-          <td>${escapeHtml(cert.course_name || 'Python')}</td>
-          <td>${escapeHtml(cert.issue_date || '-')}</td>
+          <td><strong>${escapeHtml(name)}</strong></td>
+          <td>${escapeHtml(course)}</td>
           <td><span class="badge ${statusClass}">${cert.status.toUpperCase()}</span></td>
           <td>${actionHtml}</td>
         </tr>
