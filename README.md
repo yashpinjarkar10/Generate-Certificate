@@ -122,6 +122,26 @@ docker compose down
 
 ---
 
+## ☁️ Deploying on Render (Step-by-Step)
+
+### Instance 1: FastAPI Web Service
+* **Type**: Web Service
+* **Repository**: `yashpinjarkar10/Generate-Certificate`
+* **Environment**: Docker
+* **Docker Command**: *(leave blank / default)*
+* **Environment Variables**: `DATABASE_URL`, `REDIS_URL`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET`
+
+### Instance 2: ARQ Background Worker
+* **Type**:
+  * **Option A (Render Free Tier - Web Service)**: Create as a **Web Service** and set:
+    * **Docker Command**: `uv run python -m app.queue.run_worker`
+    *(Starts a lightweight health check on `0.0.0.0:$PORT` to instantly satisfy Render's port scan, while running the ARQ worker concurrently)*
+  * **Option B (Render Paid Tier - Background Worker)**: Create as a **Background Worker** and set:
+    * **Docker Command**: `uv run python -m arq app.queue.arq_worker.WorkerSettings`
+* **Environment Variables**: Same `DATABASE_URL`, `REDIS_URL`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET`
+
+---
+
 ## Running Locally (Without Docker)
 
 Run the **Web Server** and **Background Worker** in two separate terminals:
