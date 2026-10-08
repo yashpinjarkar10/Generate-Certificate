@@ -1,9 +1,11 @@
 # Base Python image
 FROM python:3.13-slim
 
-# Install system dependencies
+# Install system dependencies (libatomic1 is required by Node.js for Prisma CLI)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libatomic1 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv directly from official binary

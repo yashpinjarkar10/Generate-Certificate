@@ -105,3 +105,17 @@ async def test_nonexistent_job_returns_404(client):
     """Querying a non-existent job returns 404 Not Found."""
     resp = await client.get("/api/v1/generate-certificate/job_nonexistent_12345")
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_health_check_endpoint(client):
+    """Health check endpoint returns 200 OK and status components."""
+    resp = await client.get("/health")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "status" in data
+    assert "api" in data
+    assert "database" in data
+    assert "redis" in data
+    assert "worker_queue" in data
+
