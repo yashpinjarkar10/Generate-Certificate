@@ -6,7 +6,7 @@ A high-performance, asynchronous bulk certificate generation API built with **Fa
 
 | Service | URL / Link | Description |
 | :--- | :--- | :--- |
-| **Live Frontend Dashboard** | [[https://fastapi-server-x0dz.onrender.com/](https://yashpinjarkar10.github.io/Generate-Certificate/)]([https://fastapi-server-x0dz.onrender.com/](https://yashpinjarkar10.github.io/Generate-Certificate/)) | Interactive Web Dashboard (Form & CSV upload) |
+| **Live Frontend Dashboard** | [https://yashpinjarkar10.github.io/Generate-Certificate/](https://yashpinjarkar10.github.io/Generate-Certificate/) | Interactive Web Dashboard (Form & CSV upload) |
 | **Live Backend API** | [https://fastapi-server-x0dz.onrender.com](https://fastapi-server-x0dz.onrender.com) | Production FastAPI Service |
 
 ---
