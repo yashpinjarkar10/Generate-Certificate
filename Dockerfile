@@ -35,5 +35,5 @@ COPY frontend/ ./frontend/
 # Expose default port
 EXPOSE 8000
 
-# Run with dynamic PORT support for Render (defaults to 8000 locally)
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Run with dynamic PORT and ROLE support (ROLE=worker runs the background worker, otherwise runs FastAPI API)
+CMD ["sh", "-c", "if [ \"$ROLE\" = \"worker\" ]; then exec uvicorn app.queue.run_worker:app --host 0.0.0.0 --port ${PORT:-8000}; else exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}; fi"]

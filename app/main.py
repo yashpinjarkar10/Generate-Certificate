@@ -3,10 +3,12 @@ Entry point for Certificate Generator API.
 Run with: uvicorn app.main:app --reload
 """
 import os
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -29,6 +31,8 @@ async def lifespan(app: FastAPI):
 
     from app.queue.redis import create_redis_pool
     from app.db import connect_prisma, disconnect_prisma
+    from app.queue.arq_worker import WorkerSettings
+    from arq.worker import create_worker
 
     # Connect to PostgreSQL via Prisma
     try:
@@ -38,12 +42,31 @@ async def lifespan(app: FastAPI):
         logger.error(f"[Startup] Failed to connect to database: {e}")
         raise
 
+    # Spawn embedded worker so FastAPI instance can process certificates directly
+    embedded_worker = None
+    worker_task = None
+    if os.getenv("EMBEDDED_WORKER", "true").lower() in ("true", "1", "yes"):
+        try:
+            logger.info("[Startup] Starting embedded ARQ worker...")
+            embedded_worker = create_worker(WorkerSettings)
+            worker_task = asyncio.create_task(embedded_worker.async_run())
+            logger.info("[Startup] Embedded ARQ worker successfully active in background.")
+        except Exception as e:
+            logger.warning(f"[Startup] Could not start embedded ARQ worker: {e}")
+
     # Create ARQ Redis pool during startup and cleanup on shutdown
     try:
         async with create_redis_pool(app):
             logger.info("[Startup] Connected to ARQ Redis pool.")
             yield
     finally:
+        if embedded_worker:
+            try:
+                await embedded_worker.close()
+            except Exception:
+                pass
+        if worker_task:
+            worker_task.cancel()
         # Disconnect Prisma on shutdown
         await disconnect_prisma()
         logger.info("[Shutdown] Disconnected database. Shutdown complete.")
@@ -105,7 +128,12 @@ async def health_check():
 # Mount static frontend dashboard if directory exists
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 if frontend_dir.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+    @app.get("/frontend", include_in_schema=False)
+    async def redirect_to_frontend():
+        return RedirectResponse(url="/frontend/")
+
+    app.mount("/frontend", StaticFiles(directory=str(frontend_dir), html=True), name="frontend_dir")
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend_root")
 
 
 if __name__ == "__main__":

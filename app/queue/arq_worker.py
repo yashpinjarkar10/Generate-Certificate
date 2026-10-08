@@ -2,6 +2,8 @@
 ARQ Worker Module for Background Certificate Processing.
 Run with: uv run python -m arq app.queue.arq_worker.WorkerSettings
 """
+import os
+import asyncio
 import logging
 from typing import Any, Dict
 from app.queue.redis import get_redis_settings
@@ -22,15 +24,57 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+async def _handle_render_health_probe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    """Handle HTTP health checks from Render port scanner."""
+    try:
+        await reader.read(1024)
+        body = b'{"status":"healthy","service":"arq_worker"}'
+        resp = (
+            b"HTTP/1.1 200 OK\r\n"
+            b"Content-Type: application/json\r\n"
+            b"Content-Length: " + str(len(body)).encode("ascii") + b"\r\n"
+            b"Connection: close\r\n\r\n" + body
+        )
+        writer.write(resp)
+        await writer.drain()
+    except Exception:
+        pass
+    finally:
+        try:
+            writer.close()
+            await writer.wait_closed()
+        except Exception:
+            pass
+
+
 async def startup(ctx: Dict[str, Any]) -> None:
-    """Connect to database when worker starts."""
+    """Connect to database when worker starts and bind to PORT if running as Render Web Service."""
     logger.info("[ARQ Worker] Initializing worker and connecting to PostgreSQL via Prisma...")
     await connect_prisma()
 
+    # If running as a Web Service on Render, PORT is set in environment.
+    # Bind an HTTP health probe on 0.0.0.0:$PORT so Render's port scan passes immediately.
+    port_env = os.getenv("PORT")
+    if port_env:
+        try:
+            port = int(port_env)
+            server = await asyncio.start_server(_handle_render_health_probe, "0.0.0.0", port)
+            ctx["health_server"] = server
+            logger.info(f"[ARQ Worker] Bound health listener to 0.0.0.0:{port} for Render port scanner.")
+        except Exception as e:
+            logger.warning(f"[ARQ Worker] Could not start health listener on port {port_env}: {e}")
+
 
 async def shutdown(ctx: Dict[str, Any]) -> None:
-    """Disconnect database when worker stops."""
+    """Disconnect database when worker stops and close health probe server."""
     logger.info("[ARQ Worker] Shutting down worker and disconnecting Prisma...")
+    server = ctx.get("health_server")
+    if server:
+        server.close()
+        try:
+            await server.wait_closed()
+        except Exception:
+            pass
     await disconnect_prisma()
 
 
