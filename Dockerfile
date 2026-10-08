@@ -14,10 +14,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Set working directory
 WORKDIR /app
 
-# Enable bytecode compilation and set Python path
+# Enable bytecode compilation, configure virtualenv path
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    UV_COMPILE_BYTECODE=1
+    UV_COMPILE_BYTECODE=1 \
+    PATH="/app/.venv/bin:$PATH"
 
 # Copy dependency definition files
 COPY pyproject.toml uv.lock ./
@@ -34,4 +35,4 @@ COPY app/ ./app/
 EXPOSE 8000
 
 # Run with dynamic PORT support for Render (defaults to 8000 locally)
-CMD ["sh", "-c", "uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
