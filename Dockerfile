@@ -25,12 +25,11 @@ COPY prisma/ ./prisma/
 RUN uv sync --frozen --no-dev && \
     uv run prisma generate
 
-# Copy project source code
+# Copy project application source code
 COPY app/ ./app/
-COPY main.py ./
 
-# Expose FastAPI default port
+# Expose default port
 EXPOSE 8000
 
-# Default command (overridden in docker-compose)
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run with dynamic PORT support for Render (defaults to 8000 locally)
+CMD ["sh", "-c", "uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
