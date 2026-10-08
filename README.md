@@ -2,12 +2,12 @@
 
 A high-performance, asynchronous bulk certificate generation API built with **FastAPI**, **Prisma (PostgreSQL)**, **ARQ & Upstash Redis**, **ReportLab**, and **S3-compatible Object Storage**.
 
-## 🚀 Live Deployments & Quick Links
+## 🚀 Live Deployment & Quick Links
 
-| Service | URL / Link | Description |
+| Service / Resource | Live Link | Description |
 | :--- | :--- | :--- |
-| **Live Frontend Dashboard** | [https://yashpinjarkar10.github.io/Generate-Certificate/](https://yashpinjarkar10.github.io/Generate-Certificate/) | Interactive Web Dashboard (Form & CSV upload) |
-| **Live Backend API** | [https://fastapi-server-x0dz.onrender.com/docs](https://fastapi-server-x0dz.onrender.com/docs) | Production FastAPI Service |
+| **Live Web App & Dashboard** | [https://fastapi-server-x0dz.onrender.com/](https://fastapi-server-x0dz.onrender.com/) | Interactive Frontend (Form, CSV upload, Live Tracking) |
+| **Swagger Interactive Docs** | [https://fastapi-server-x0dz.onrender.com/docs](https://fastapi-server-x0dz.onrender.com/docs) | OpenAPI interactive schema & testing console |
 
 ---
 
@@ -167,9 +167,9 @@ The repository includes a modern, responsive static web dashboard located in the
 * **Certificate Downloads**: Table listing all processed certificates with direct 7-day presigned S3 download links.
 * **Job Cancellation**: One-click cancellation for queued or in-flight jobs.
 
-### How to Access & Deploy the Frontend:
-1. **Served directly via FastAPI**: Open [https://fastapi-server-x0dz.onrender.com/](https://fastapi-server-x0dz.onrender.com/) or `http://localhost:8000/`.
-2. **Standalone Static Deployment**: Since the frontend uses standard HTML/CSS/JavaScript with CORS enabled on the backend, you can deploy the `frontend/` folder anywhere (e.g., GitHub Pages, Vercel, Netlify, or Cloudflare Pages) and point the "Backend API Endpoint" input field to your live Render backend URL.
+### How to Access the Frontend:
+1. **Live on Render**: Open [https://fastapi-server-x0dz.onrender.com/](https://fastapi-server-x0dz.onrender.com/) or [https://fastapi-server-x0dz.onrender.com/frontend](https://fastapi-server-x0dz.onrender.com/frontend) (served directly alongside the backend API).
+2. **Local Development**: Run `uv run uvicorn app.main:app --port 8000` and open [http://localhost:8000/](http://localhost:8000/).
 
 ---
 

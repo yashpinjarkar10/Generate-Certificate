@@ -48,8 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentJobId = null;
   let pollingInterval = null;
 
-  // Initialize API URL
-  const defaultApiUrl = (window.location.protocol.startsWith("http") && !window.location.host.includes("localhost:5500"))
+  // Initialize API URL (default to live Render backend if hosted on GitHub Pages or locally)
+  const defaultApiUrl = window.location.host.includes("onrender.com")
     ? window.location.origin
     : "https://fastapi-server-x0dz.onrender.com";
   
