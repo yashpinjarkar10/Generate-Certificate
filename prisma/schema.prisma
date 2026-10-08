@@ -1,0 +1,39 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = 5
+}
+
+model Job {
+  job_id       String        @id
+  status       String        @default("queued")
+  total        Int
+  completed    Int           @default(0)
+  failed       Int           @default(0)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  certificates Certificate[]
+
+  @@map("jobs")
+}
+
+model Certificate {
+  certificate_id String   @id
+  job_id         String
+  job            Job      @relation(fields: [job_id], references: [job_id], onDelete: Cascade)
+  name           String
+  course         String
+  date           DateTime
+  status         String   @default("pending")
+  url            String?
+  error          String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([job_id])
+  @@map("certificates")
+}
