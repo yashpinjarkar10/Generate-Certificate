@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulk Certificate Generator | FastAPI + ARQ + S3</title>
+  <meta name="description" content="Generate high-volume, production-ready PDF certificates with background processing, PostgreSQL, and Cloud S3 storage.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo-area">
+        <div class="logo-icon">📜</div>
+        <div>
+          <h1>Bulk Certificate Generator</h1>
+          <p class="tagline">Production-grade distributed certificate generation engine</p>
+        </div>
+      </div>
+      <div id="system-status-badge" class="status-badge">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="health-text">Checking Status...</span>
+      </div>
+    </header>
+
+    <!-- API Config & Health Bar -->
+    <div class="config-bar">
+      <label for="api-url">Backend API Endpoint:</label>
+      <input type="text" id="api-url" value="https://fastapi-server-x0dz.onrender.com" placeholder="https://your-api.onrender.com">
+      <button type="button" id="btn-check-health" class="btn btn-outline">Check Health</button>
+      <a id="btn-docs-link" href="https://fastapi-server-x0dz.onrender.com/docs" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="text-decoration:none;">API Swagger Docs ↗</a>
+    </div>
+
+    <!-- Main Generator Card -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="interactive-tab">Interactive Form</button>
+        <button class="tab-btn" data-tab="csv-tab">CSV Upload</button>
+        <button class="tab-btn" data-tab="json-tab">Raw JSON</button>
+      </div>
+
+      <!-- Tab 1: Interactive Form -->
+      <div id="interactive-tab" class="tab-content active">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Enter recipient details below. <strong>Full Name</strong> is required. <em>Course</em> (defaults to "Python") and <em>Date</em> (defaults to today) are optional.
+        </p>
+        <form id="interactive-form">
+          <div id="recipient-rows">
+            <!-- Row template -->
+            <div class="recipient-row">
+              <input type="text" class="rec-name" placeholder="Full Name (e.g. Yash Pinjarkar)" required>
+              <input type="text" class="rec-course" placeholder="Course Name (default: Python)">
+              <input type="date" class="rec-date">
+              <button type="button" class="btn btn-danger btn-icon btn-remove" title="Remove row" disabled>&times;</button>
+            </div>
+            <div class="recipient-row">
+              <input type="text" class="rec-name" placeholder="Full Name (e.g. Jane Doe)" required>
+              <input type="text" class="rec-course" placeholder="Course Name (default: Python)">
+              <input type="date" class="rec-date">
+              <button type="button" class="btn btn-danger btn-icon btn-remove" title="Remove row">&times;</button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
+            <button type="button" id="btn-add-row" class="btn btn-outline">+ Add Recipient</button>
+            <button type="submit" id="btn-submit-form" class="btn btn-primary">Generate Certificates ⚡</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab 2: CSV Upload -->
+      <div id="csv-tab" class="tab-content">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+          Upload a CSV file containing your recipient roster. The columns can be in <strong>any order</strong> and headers are case-insensitive.
+        </p>
+        
+        <div class="dropzone" id="dropzone">
+          <div class="dropzone-icon">📁</div>
+          <h3 style="margin-bottom: 0.5rem;">Click to select or drag & drop CSV</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">
+            Accepted format: <code>.csv</code> with column headers <code>name</code> (mandatory), <code>course</code> (optional), <code>date</code> (optional)
+          </p>
+          <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+        </div>
+
+        <div id="selected-file-info" style="display: none; margin-top: 1rem; padding: 0.8rem; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.9rem; align-items: center; justify-content: space-between;">
+          <span id="selected-file-name" style="font-weight: 500;"></span>
+          <button type="button" id="btn-clear-file" class="btn btn-danger btn-icon" style="padding: 0.2rem 0.6rem; font-size: 0.8rem;">Clear</button>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
+          <button type="button" id="btn-download-sample-csv" class="btn btn-outline">📥 Download Sample CSV</button>
+          <button type="button" id="btn-upload-csv" class="btn btn-primary" disabled>Upload & Generate ⚡</button>
+        </div>
+      </div>
+
+      <!-- Tab 3: Raw JSON -->
+      <div id="json-tab" class="tab-content">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+          Paste or edit the JSON payload sent to <code>POST /api/v1/generate-certificate</code>:
+        </p>
+        <textarea id="raw-json-input" rows="10" spellcheck="false">{
+  "certificate_type": "standard",
+  "recipients": [
+    {
+      "name": "Bruce Wayne",
+      "course": "Advanced Cyber Forensics",
+      "date": "2026-10-08"
+    },
+    {
+      "name": "Diana Prince",
+      "course": "Leadership & Strategy"
+    },
+    {
+      "name": "Clark Kent"
+    }
+  ]
+}</textarea>
+        <div style="margin-top: 1.5rem;">
+          <button type="button" id="btn-submit-json" class="btn btn-primary">Submit JSON Payload ⚡</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Job Tracker Section -->
+    <div class="card job-tracker" id="job-tracker">
+      <div class="progress-header">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Job Execution</span>
+          <h2 style="font-size: 1.25rem; font-weight: 600; margin-top: 0.2rem;">
+            ID: <span id="job-id-display" style="font-family: monospace; color: var(--accent-cyan);">-</span>
+          </h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span id="job-status-badge" class="badge badge-pending">PENDING</span>
+          <button type="button" id="btn-cancel-job" class="btn btn-danger" style="display: none; padding: 0.4rem 0.8rem; font-size: 0.85rem;">Cancel Job</button>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-bar-fill"></div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total Recipients</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-processed">0</div>
+          <div class="stat-label">Processed</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-successful" style="color: var(--success);">0</div>
+          <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-failed" style="color: var(--danger);">0</div>
+          <div class="stat-label">Failed</div>
+        </div>
+      </div>
+
+      <!-- Error alert banner if any -->
+      <div id="job-error-banner" style="display: none; margin-bottom: 1rem; padding: 0.8rem 1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; font-size: 0.9rem;">
+      </div>
+
+      <!-- Certificates Table -->
+      <div id="certs-section" style="margin-top: 1.5rem;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Generated Certificates</h3>
+        <div class="certs-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Recipient Name</th>
+                <th>Course</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Action / Download</th>
+              </tr>
+            </thead>
+            <tbody id="certs-tbody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                  Waiting for certificate worker to start processing...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>
+        FastAPI Certificate Engine &bull; Built with FastAPI, ARQ Worker, Prisma ORM, PostgreSQL & S3 Cloud Storage &bull;
+        <a href="https://github.com/yashpinjarkar10/Generate-Certificate" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue);">GitHub Repository</a>
+      </p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

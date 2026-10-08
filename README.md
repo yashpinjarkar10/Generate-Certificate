@@ -2,6 +2,16 @@
 
 A high-performance, asynchronous bulk certificate generation API built with **FastAPI**, **Prisma (PostgreSQL)**, **ARQ & Upstash Redis**, **ReportLab**, and **S3-compatible Object Storage**.
 
+## 🚀 Live Deployments & Quick Links
+
+| Service | URL / Link | Description |
+| :--- | :--- | :--- |
+| **Live Frontend Dashboard** | [https://fastapi-server-x0dz.onrender.com/](https://fastapi-server-x0dz.onrender.com/) | Interactive Web Dashboard (Form & CSV upload) |
+| **Live Backend API** | [https://fastapi-server-x0dz.onrender.com](https://fastapi-server-x0dz.onrender.com) | Production FastAPI Service |
+| **Interactive API Docs (Swagger)** | [https://fastapi-server-x0dz.onrender.com/docs](https://fastapi-server-x0dz.onrender.com/docs) | OpenAPI interactive schema & test console |
+| **Alternative Docs (ReDoc)** | [https://fastapi-server-x0dz.onrender.com/redoc](https://fastapi-server-x0dz.onrender.com/redoc) | Clean API reference specification |
+| **Health Check Endpoint** | [https://fastapi-server-x0dz.onrender.com/health](https://fastapi-server-x0dz.onrender.com/health) | Live DB, Redis, and Worker heartbeat check |
+
 ---
 
 ## Architecture Overview
@@ -126,6 +136,23 @@ Interactive Swagger API Documentation: [http://localhost:8000/docs](http://local
 ```bash
 uv run python -m arq app.queue.arq_worker.WorkerSettings
 ```
+
+---
+
+## 💻 Web Dashboard (Frontend)
+
+The repository includes a modern, responsive static web dashboard located in the `frontend/` folder. It provides:
+
+* **Interactive Form**: Dynamic row builder to input recipient names, course titles, and dates.
+* **CSV Drag-and-Drop**: Upload rosters in `.csv` format with flexible column ordering.
+* **Raw JSON Editor**: Direct API payload submission for testing.
+* **Real-Time Polling & Progress**: Visual progress bar, recipient counters (Total, Processed, Successful, Failed), and dynamic status badge.
+* **Certificate Downloads**: Table listing all processed certificates with direct 7-day presigned S3 download links.
+* **Job Cancellation**: One-click cancellation for queued or in-flight jobs.
+
+### How to Access & Deploy the Frontend:
+1. **Served directly via FastAPI**: Open [https://fastapi-server-x0dz.onrender.com/](https://fastapi-server-x0dz.onrender.com/) or `http://localhost:8000/`.
+2. **Standalone Static Deployment**: Since the frontend uses standard HTML/CSS/JavaScript with CORS enabled on the backend, you can deploy the `frontend/` folder anywhere (e.g., GitHub Pages, Vercel, Netlify, or Cloudflare Pages) and point the "Backend API Endpoint" input field to your live Render backend URL.
 
 ---
 

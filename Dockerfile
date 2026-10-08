@@ -28,8 +28,9 @@ COPY prisma/ ./prisma/
 RUN uv sync --frozen --no-dev && \
     uv run prisma generate
 
-# Copy project application source code
+# Copy project application source code and static frontend
 COPY app/ ./app/
+COPY frontend/ ./frontend/
 
 # Expose default port
 EXPOSE 8000
